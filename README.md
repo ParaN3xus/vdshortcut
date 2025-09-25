@@ -12,7 +12,7 @@ Keyboard shortcuts for switching between virtual desktops directly by number and
 1. Download the executable from the releases page
 2. Place it in a folder of your choice
 3. Run the application
-4. Use `Start-Process "vdshortcut.exe" -WindowStyle Hidden` to run in the background
+4. Use `Start-Process "vdshortcut.exe" -WindowStyle Hidden` to run it in the background
 
 ## Configuration
 
