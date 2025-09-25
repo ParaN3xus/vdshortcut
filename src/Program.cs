@@ -68,7 +68,7 @@ partial class Program
     )]
     private static partial IntPtr GetModuleHandle(string lpModuleName);
 
-    [LibraryImport("user32.dll", EntryPoint = "GetForegroundWindowA")]
+    [LibraryImport("user32.dll", EntryPoint = "GetForegroundWindow")]
     private static partial IntPtr GetForegroundWindow();
 
     [LibraryImport("user32.dll", EntryPoint = "GetMessageA")]
