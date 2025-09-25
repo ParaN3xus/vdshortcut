@@ -20,6 +20,7 @@ partial class Program
     private static Config? config;
     private static HashSet<int> switchKeyCodes = [];
     private static HashSet<int> moveKeyCodes = [];
+    private static HashSet<int> pinKeyCodes = [];
 
     // State tracking
     private static readonly HashSet<int> pressedKeys = [];
@@ -35,6 +36,9 @@ partial class Program
 
         [JsonPropertyName("moveKeys")]
         public int[] MoveKeys { get; set; } = [];
+
+        [JsonPropertyName("pinKeys")]
+        public int[] PinKeys { get; set; } = [];
     }
 
     public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
@@ -121,6 +125,9 @@ partial class Program
         Console.WriteLine(
             $"Move keys: {string.Join(" + ", config.MoveKeys.Select(k => $"0x{k:X2}"))} + (1-9)"
         );
+        Console.WriteLine(
+            $"Pin keys: {string.Join(" + ", config.PinKeys.Select(k => $"0x{k:X2}"))} + (1-9)"
+        );
         Console.WriteLine();
 
         _hookID = SetHook(_proc);
@@ -169,6 +176,7 @@ partial class Program
             // Convert arrays to HashSets
             switchKeyCodes = [.. config.SwitchKeys];
             moveKeyCodes = [.. config.MoveKeys];
+            pinKeyCodes = [.. config.PinKeys];
 
             return true;
         }
@@ -246,7 +254,10 @@ partial class Program
                 
                 // Move window and switch key combination (move window to desktop and switch)
                 // This should have more keys than switchKeys to have higher priority
-                "moveKeys": [124, 160] // F13 + Left Shift (0x7C = 124, 0xA0 = 160)
+                "moveKeys": [124, 160], // F13 + Left Shift (0x7C = 124, 0xA0 = 160)
+                
+                // Pin/Unpin current window key combination
+                "pinKeys": [124, 83] // F13 + S (0x7C = 124, 0x53 = 83)
             }
             """;
 
@@ -278,6 +289,15 @@ partial class Program
                 pressedKeys.Remove(vkCode);
             }
 
+            // Check for pin key combination (check before number keys)
+            if (isKeyDown && AreKeysPressed(pinKeyCodes))
+            {
+                RunOnSTAThread(() => TogglePinCurrentWindow());
+                Console.WriteLine(
+                    $"[{string.Join("+", config!.PinKeys.Select(k => $"0x{k:X2}"))}] toggled pin for current window"
+                );
+                return (IntPtr)1; // prevent default
+            }
             // Check for number keys when pressed down
             if (isKeyDown && vkCode >= VK_1 && vkCode <= VK_9)
             {
@@ -329,6 +349,24 @@ partial class Program
 
         thread.SetApartmentState(ApartmentState.STA);
         thread.Start();
+    }
+
+    private static void TogglePinCurrentWindow()
+    {
+        IntPtr hWnd = GetForegroundWindow();
+        if (hWnd != IntPtr.Zero)
+        {
+            if (VirtualDesktop.IsPinnedWindow(hWnd))
+            {
+                VirtualDesktop.UnpinWindow(hWnd);
+                Console.WriteLine("Window unpinned");
+            }
+            else
+            {
+                VirtualDesktop.PinWindow(hWnd);
+                Console.WriteLine("Window pinned");
+            }
+        }
     }
 
     private static void SwitchToDesktop(int index)
