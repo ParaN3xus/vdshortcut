@@ -18,11 +18,11 @@ partial class Program
 
     // Configuration
     private static Config? config;
-    private static HashSet<int> switchKeyCodes = new();
-    private static HashSet<int> moveKeyCodes = new();
+    private static HashSet<int> switchKeyCodes = [];
+    private static HashSet<int> moveKeyCodes = [];
 
     // State tracking
-    private static HashSet<int> pressedKeys = new();
+    private static readonly HashSet<int> pressedKeys = [];
 
     // hooks
     private static readonly LowLevelKeyboardProc _proc = HookCallback;
@@ -31,54 +31,60 @@ partial class Program
     public class Config
     {
         [JsonPropertyName("switchKeys")]
-        public int[] SwitchKeys { get; set; } = Array.Empty<int>();
+        public int[] SwitchKeys { get; set; } = [];
 
         [JsonPropertyName("moveKeys")]
-        public int[] MoveKeys { get; set; } = Array.Empty<int>();
+        public int[] MoveKeys { get; set; } = [];
     }
 
     public delegate IntPtr LowLevelKeyboardProc(int nCode, IntPtr wParam, IntPtr lParam);
 
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr SetWindowsHookEx(
+    [LibraryImport("user32.dll", EntryPoint = "SetWindowsHookExA", SetLastError = true)]
+    private static partial IntPtr SetWindowsHookEx(
         int idHook,
         LowLevelKeyboardProc lpfn,
         IntPtr hMod,
         uint dwThreadId
     );
 
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+    [LibraryImport("user32.dll", EntryPoint = "UnhookWindowsHookExA", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool UnhookWindowsHookEx(IntPtr hhk);
+    private static partial bool UnhookWindowsHookEx(IntPtr hhk);
 
-    [DllImport("user32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr CallNextHookEx(
+    [LibraryImport("user32.dll", EntryPoint = "CallNextHookEx", SetLastError = true)]
+    private static partial IntPtr CallNextHookEx(
         IntPtr hhk,
         int nCode,
         IntPtr wParam,
         IntPtr lParam
     );
 
-    [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
-    private static extern IntPtr GetModuleHandle(string lpModuleName);
+    [LibraryImport(
+        "kernel32.dll",
+        EntryPoint = "GetModuleHandleA",
+        SetLastError = true,
+        StringMarshalling = StringMarshalling.Custom,
+        StringMarshallingCustomType = typeof(System.Runtime.InteropServices.Marshalling.AnsiStringMarshaller)
+    )]
+    private static partial IntPtr GetModuleHandle(string lpModuleName);
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr GetForegroundWindow();
+    [LibraryImport("user32.dll", EntryPoint = "GetForegroundWindowA")]
+    private static partial IntPtr GetForegroundWindow();
 
-    [DllImport("user32.dll")]
-    private static extern int GetMessage(
+    [LibraryImport("user32.dll", EntryPoint = "GetMessageA")]
+    private static partial int GetMessage(
         out MSG lpMsg,
         IntPtr hWnd,
         uint wMsgFilterMin,
         uint wMsgFilterMax
     );
 
-    [DllImport("user32.dll")]
+    [LibraryImport("user32.dll", EntryPoint = "TranslateMessageA")]
     [return: MarshalAs(UnmanagedType.Bool)]
-    private static extern bool TranslateMessage(ref MSG lpMsg);
+    private static partial bool TranslateMessage(ref MSG lpMsg);
 
-    [DllImport("user32.dll")]
-    private static extern IntPtr DispatchMessage(ref MSG lpMsg);
+    [LibraryImport("user32.dll", EntryPoint = "DispatchMessageA")]
+    private static partial IntPtr DispatchMessage(ref MSG lpMsg);
 
     [StructLayout(LayoutKind.Sequential)]
     public struct MSG
